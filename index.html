@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUAL Multiplayer Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #3f484c;
+            color: #ffffff;
+            text-align: center;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            background: #4d565b;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            color: #ffffff;
+            border-radius: 8px;
+        }
+        h1, h2 {
+            color: #dfe1e3;
+        }
+        .video-container {
+            margin: 20px 0;
+        }
+        .section {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background: #5d666b;
+            border-radius: 5px;
+        }
+        .code {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        ul, ol {
+            text-align: left;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        img {
+            max-width: 100%;
+            display: block;
+            margin: 10px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DUAL Multiplayer Game</h1>
+        <p>A multiplayer game using CC3200 microcontrollers, OLED displays, and AWS integration.</p>
+        
+        <div class="section">
+            <h2>Project Description</h2>
+            <p>This project is a multiplayer game inspired by the mobile game <b>DUAL</b>. It utilizes two CC3200 microcontrollers, each connected to an OLED display, allowing two players to battle in real-time. The game uses UART for inter-device communication, an accelerometer for motion-based controls, and AWS IoT for tracking scores.</p>
+        </div>
+        
+        <div class="section video-container">
+            <h2>Video Demonstration</h2>
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/NS8kX_ly41k?si=zDhS_Lp47paxiBhM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        
+
+        <div class="section">
+            <h2>System Architecture</h2>
+            <ul>
+                <li><b>CC3200 Microcontrollers:</b> Handle real-time game logic and AWS communication.</li>
+                <li><b>OLED Display:</b> Renders game visuals and player information.</li>
+                <li><b>UART Communication:</b> Synchronizes game state between two microcontrollers.</li>
+                <li><b>Accelerometer:</b> Provides tilt-based movement controls.</li>
+                <li><b>Infrared (IR) Input:</b> Used for entering player usernames.</li>
+                <li><b>AWS IoT:</b> Manages game score updates and cloud integration.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Game States</h2>
+            <ul>
+                <li><b>Setup:</b> Players enter their usernames using an IR remote. Once both are ready, the game starts.</li>
+                <li><b>Game Logic:</b> Each player controls a ship using the accelerometer, and projectiles are fired using a button. Data is exchanged via UART to ensure seamless gameplay.</li>
+                <li><b>Score Update:</b> Scores are stored locally and updated on AWS after each round.</li>
+                <li><b>Game End:</b> A winning screen is displayed based on game results. Players can restart with the same names or enter new usernames.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>How to Run</h2>
+            <ol>
+                <li>Flash the CC3200 microcontrollers with the provided firmware.</li>
+                <li>Connect both boards and all components according to the following schematic:</li>
+                <div>
+                    <img src="circuit.png" alt="Circuit Schematic">
+                </div>
+                <li>Run the provided Flask server and host the site using an ngrok tunnel.</li>
+                <li>Ensure AWS IoT is correctly set up for cloud-based score updates.</li>
+                <li>Connect AWS IoT to AWS Lambda and configure it with the following function:</li>
+                <pre class="code">
+import sys
+import json
+import requests
+sys.path.append('/opt/python')
+
+def lambda_handler(event, context):
+    if "message" not in event:
+        return {
+            "statusCode": 400,
+            "body": json.dumps("Error: No 'message' key found in event.")
+        }
+
+    msg = event["message"]
+    payload = {"iotMessage": msg}
+
+    flask_url =  "(insert ngrok url here)"
+
+    try:
+        response = requests.post(flask_url, json=payload)
+        return {
+            "statusCode": response.status_code,
+            "body": response.text
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps("Internal Server Error")
+        }
+                </pre>
+                <li>Open the Python terminal intialized from server.py for the score display.</li>
+                <li>Connect both boards to power and start their programs.</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>How to Play</h2>
+            <ol>
+                <li>Use an IR Remote to enter usernames on both boards prior to the game.</li>
+                <li>Tilt the board to move the ship around the screen.</li>
+                <li>Click or hold the SW3 button on the board to shoot projectiles. Holding the button shoots bigger projectiles.</li>
+                <li>An ammo count is displayed on the sides of the ship. Running out of ammo limits new projectiles from being shot or charging projectiles to get any bigger. Wait for a cooldown for ammo to recharge.</li>
+                <li>Target your projectiles at your opponent's ship. The round is over when someone is hit.</li>
+                <li>Play rounds until someone reaches the winning score of 5.</li>
+                <li>At the end screen, select either the restart or home button on both boards using the right/left buttons on the remote. Press OK to confirm.</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
